@@ -5,47 +5,41 @@ import net.fabricmc.loader.api.FabricLoader;
 import java.io.*;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.List;
 
 
-public class BetterArrayList {
+public class BetterArrayList extends ArrayList<String>{
 
-    private List<String> betterList = new ArrayList<>();
-
-    public List<String> getList(){
-        return betterList;
-    }
-
+    @Override
     public boolean add(String s){
-        if (!betterList.contains(s)) {
-            betterList.add(s);
-            return true;
+        if (!this.contains(s)) {
+            return super.add(s);
         }
         return false;
     }
 
-    public boolean remove(String s) {
-        return betterList.remove(s);
+    @Override
+    public boolean remove(Object o) {
+        return super.remove(o);
     }
 
-    public boolean contains(String s) {
-        return betterList.contains(s);
+    @Override
+    public boolean contains(Object o) {
+        return super.contains(o);
     }
 
+    @Override
     public int size() {
-        return betterList.size();
+        return super.size();
     }
 
+    @Override
     public void clear() {
-        betterList.clear();
+        super.clear();
     }
 
     public void loadListFromFile(Path path){
         try {
-            File file = path.toFile();
-            if (!file.exists()) return;
-
-            BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
+            BufferedReader bufferedReader = new BufferedReader(new FileReader(path.toFile()));
             String s;
 
             while((s = bufferedReader.readLine()) != null){
@@ -61,13 +55,13 @@ public class BetterArrayList {
         try {
             BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(path.toFile()));
 
-            for (String s: getList()){
-                bufferedWriter.write(s + "\n");
+            for (String s: this){
+                bufferedWriter.write(s);
+                bufferedWriter.newLine();
             }
             bufferedWriter.close();
         } catch (Exception e) {
             throw new RuntimeException("ERROR WHILE TRYING TO SAVE FILE: " + e);
         }
     }
-
 }
