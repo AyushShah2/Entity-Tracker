@@ -127,7 +127,7 @@ public class Renderer {
         }
     }
 
-    public static void draw3DBox(MatrixStack matrixStack, Camera camera, Box box, Color color, float lineThickness, MinecraftClient MC) {
+    public static void drawFill3DBox(MatrixStack matrixStack, Camera camera, Box box, Color color, float lineThickness, MinecraftClient MC) {
         Box newBox = box.offset(camera.getPos().multiply(-1));
 
         MatrixStack.Entry entry = matrixStack.peek();
@@ -140,7 +140,7 @@ public class Renderer {
 
         // Drawing Logic
         VertexConsumerProvider.Immediate vertexConsumerProvider = MC.getBufferBuilders().getEntityVertexConsumers();
-/*        RenderLayer layer = RenderLayers.QUADS;
+        RenderLayer layer = RenderLayers.QUADS;
         VertexConsumer bufferBuilder = vertexConsumerProvider.getBuffer(layer);
 
         bufferBuilder.vertex(matrix4f, (float) newBox.minX, (float) newBox.minY, (float) newBox.minZ).color(r, g, b, a);
@@ -174,7 +174,57 @@ public class Renderer {
         bufferBuilder.vertex(matrix4f, (float) newBox.minX, (float) newBox.maxY, (float) newBox.minZ).color(r, g, b, a);
 
         vertexConsumerProvider.draw(layer);
-*/
+
+        layer = RenderLayers.LINES;
+        bufferBuilder = vertexConsumerProvider.getBuffer(layer);
+
+        buildLine3d(matrixStack, camera, bufferBuilder, box.minX, box.minY, box.minZ, box.maxX, box.minY, box.minZ,
+                color);
+        buildLine3d(matrixStack, camera, bufferBuilder, box.maxX, box.minY, box.minZ, box.maxX, box.minY, box.maxZ,
+                color);
+        buildLine3d(matrixStack, camera, bufferBuilder, box.maxX, box.minY, box.maxZ, box.minX, box.minY, box.maxZ,
+                color);
+        buildLine3d(matrixStack, camera, bufferBuilder, box.minX, box.minY, box.maxZ, box.minX, box.minY, box.minZ,
+                color);
+        buildLine3d(matrixStack, camera, bufferBuilder, box.minX, box.minY, box.minZ, box.minX, box.maxY, box.minZ,
+                color);
+        buildLine3d(matrixStack, camera, bufferBuilder, box.maxX, box.minY, box.minZ, box.maxX, box.maxY, box.minZ,
+                color);
+        buildLine3d(matrixStack, camera, bufferBuilder, box.maxX, box.minY, box.maxZ, box.maxX, box.maxY, box.maxZ,
+                color);
+        buildLine3d(matrixStack, camera, bufferBuilder, box.minX, box.minY, box.maxZ, box.minX, box.maxY, box.maxZ,
+                color);
+        buildLine3d(matrixStack, camera, bufferBuilder, box.minX, box.maxY, box.minZ, box.maxX, box.maxY, box.minZ,
+                color);
+        buildLine3d(matrixStack, camera, bufferBuilder, box.maxX, box.maxY, box.minZ, box.maxX, box.maxY, box.maxZ,
+                color);
+        buildLine3d(matrixStack, camera, bufferBuilder, box.maxX, box.maxY, box.maxZ, box.minX, box.maxY, box.maxZ,
+                color);
+        buildLine3d(matrixStack, camera, bufferBuilder, box.minX, box.maxY, box.maxZ, box.minX, box.maxY, box.minZ,
+                color);
+
+        vertexConsumerProvider.draw(layer);
+
+        // RenderSystem.enableCull();
+        // RenderSystem.lineWidth(1f);
+        // RenderSystem.enableDepthTest();
+        // RenderSystem.disableBlend();
+    }
+
+    public static void draw3DBox(MatrixStack matrixStack, Camera camera, Box box, Color color, float lineThickness, MinecraftClient MC) {
+        Box newBox = box.offset(camera.getPos().multiply(-1));
+
+        MatrixStack.Entry entry = matrixStack.peek();
+        Matrix4f matrix4f = entry.getPositionMatrix();
+
+        float r = color.getRed();
+        float g = color.getGreen();
+        float b = color.getBlue();
+        float a = color.getAlpha();
+
+        // Drawing Logic
+        VertexConsumerProvider.Immediate vertexConsumerProvider = MC.getBufferBuilders().getEntityVertexConsumers();
+
         RenderLayer layer = RenderLayers.LINES;
         VertexConsumer bufferBuilder = vertexConsumerProvider.getBuffer(layer);
 

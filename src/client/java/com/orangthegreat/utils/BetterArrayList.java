@@ -1,7 +1,5 @@
 package com.orangthegreat.utils;
 
-import net.fabricmc.loader.api.FabricLoader;
-
 import java.io.*;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -17,10 +15,15 @@ public class BetterArrayList extends ArrayList<String>{
         return false;
     }
 
+    public boolean forceAdd(String s){
+        return super.add(s);
+    }
+
     @Override
     public boolean remove(Object o) {
         return super.remove(o);
     }
+
 
     @Override
     public boolean contains(Object o) {
@@ -47,7 +50,7 @@ public class BetterArrayList extends ArrayList<String>{
             }
             bufferedReader.close();
         } catch (Exception e) {
-            throw new RuntimeException("ERROR WHILE TRYING TO LOAD FILE: " + e);
+            //throw new RuntimeException("ERROR WHILE TRYING TO LOAD FILE: " + e);
         }
     }
 
@@ -61,7 +64,7 @@ public class BetterArrayList extends ArrayList<String>{
             }
             bufferedWriter.close();
         } catch (Exception e) {
-            throw new RuntimeException("ERROR WHILE TRYING TO SAVE FILE: " + e);
+            //throw new RuntimeException("ERROR WHILE TRYING TO SAVE FILE: " + e);
         }
     }
 }
