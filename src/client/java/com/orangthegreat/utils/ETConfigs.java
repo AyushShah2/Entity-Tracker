@@ -1,48 +1,45 @@
 package com.orangthegreat.utils;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import net.fabricmc.loader.api.FabricLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
-
+import java.util.List;
 import java.util.Map;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-
 
 public class ETConfigs {
     private static ETConfigs instance;
-    private static BetterArrayList loadedEntities = new BetterArrayList(); //Consists of all entities ever loaded when playing using this mod
-    private static BetterArrayList enabledEntities = new BetterArrayList(); //Consists of only entities to be tracked
-    private static BetterArrayList colorOfEnabled = new BetterArrayList();
-    private static BetterArrayList currentlyLoadedPlayers = new BetterArrayList();
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    private static SettingsList settings = new SettingsList();
-    private final Map<String, String> renderModes = new HashMap<>();
-    private static Path LOADED_ENTITIES_FILE, ENABLED_ENTITIES_FILE, COLOR_OF_ENABLED_FILE, SETTINGS_FILE, RENDER_MODE_FILE;
+    private final Map<String, EntitySettings> entityConfigs = new HashMap<>();
+    private static ModSettings modSettings = new ModSettings();
+    private static Path LOADED_ENTITIES_FILE, SETTINGS_FILE;
+    private final String defaultColor = "#FFFFFF";
+    private final String defaultRenderMode = "Hitbox";
+    private final boolean defaultState = false;
     public static final String MOD_ID = "Entity Tracker";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     private ETConfigs(){
-        try{
+        try {
             Path configDir = FabricLoader.getInstance().getConfigDir().resolve("EntityTracker");
             Files.createDirectories(configDir);
-
-            LOADED_ENTITIES_FILE = configDir.resolve("LoadedEntities.txt");
-            ENABLED_ENTITIES_FILE = configDir.resolve("EnabledEntities.txt");
-            COLOR_OF_ENABLED_FILE = configDir.resolve("ColorOfEnabledEntities.txt");
+            LOADED_ENTITIES_FILE = configDir.resolve("LoadedEntities.json");
             SETTINGS_FILE = configDir.resolve("Settings.txt");
-            RENDER_MODE_FILE = configDir.resolve("RenderMode.json");
-            Files.writeString(SETTINGS_FILE, "false\n");
-        } catch(Exception e){
-            LOGGER.error("Error while creating files");
+            initializeDefaultsIfMissing();
+        }
+        catch(Exception e){
+            LOGGER.error("Error setting up config directory", e);
         }
     }
 
@@ -52,69 +49,90 @@ public class ETConfigs {
     }
 
     public void loadConfig(){
-        LOGGER.info("Loading Configs...");
-        loadedEntities.loadListFromFile(LOADED_ENTITIES_FILE);
-        enabledEntities.loadListFromFile(ENABLED_ENTITIES_FILE);
-        colorOfEnabled.loadListFromFile(COLOR_OF_ENABLED_FILE);
-        settings.loadListFromFile(SETTINGS_FILE);
-        if (Files.exists(RENDER_MODE_FILE)) {
-            try {
-                String json = Files.readString(RENDER_MODE_FILE).trim();
-                if (!json.isEmpty()) {
-                    JsonObject jsonObject = gson.fromJson(json, JsonObject.class);
-                    if (jsonObject != null && jsonObject.has("renderModes") && !jsonObject.get("renderModes").isJsonNull()) {
-                        Type type = new TypeToken<Map<String, String>>(){}.getType();
-                        renderModes.clear();
-                        renderModes.putAll(gson.fromJson(jsonObject.get("renderModes"), type));
-                    }
+        try{
+            LOGGER.info("Loading Entity Tracker Config...");
+            modSettings.loadListFromFile(SETTINGS_FILE);
+            if(Files.exists(LOADED_ENTITIES_FILE)){
+                Type type = new TypeToken<Map<String, EntitySettings>>() {}.getType();
+                Map<String, EntitySettings> loaded = gson.fromJson(new FileReader(LOADED_ENTITIES_FILE.toFile()), type);
+                if (loaded != null) {
+                    entityConfigs.clear();
+                    entityConfigs.putAll(loaded);
                 } else {
-                    LOGGER.warn("Render mode config file is empty; skipping.");
+                    LOGGER.warn("Config file was empty or invalid, using empty config.");
                 }
-            } catch (Exception e) {
-                LOGGER.error("Failed to load render modes config", e);
             }
+        } catch (Exception e){
+            LOGGER.error("Failed to load entity config", e);
         }
-
     }
 
     public void saveConfig(){
-        LOGGER.info("Saving Configs...");
-        loadedEntities.saveListToFile(LOADED_ENTITIES_FILE);
-        enabledEntities.saveListToFile(ENABLED_ENTITIES_FILE);
-        colorOfEnabled.saveListToFile(COLOR_OF_ENABLED_FILE);
-        settings.saveListToFile(SETTINGS_FILE);
-        JsonObject jsonObject = new JsonObject();
-        jsonObject.add("renderModes", gson.toJsonTree(renderModes));
-        try {
-            Files.writeString(RENDER_MODE_FILE, gson.toJson(jsonObject));
-        } catch (Exception e) {
-            LOGGER.error("Failed to save render modes", e);
+        try{
+            LOGGER.info("Saving Entity Tracker Config...");
+            modSettings.saveListToFile(SETTINGS_FILE);
+            FileWriter writer = new FileWriter(LOADED_ENTITIES_FILE.toFile());
+            gson.toJson(entityConfigs, writer);
+            writer.close();
+        } catch (Exception e){
+            LOGGER.error("Failed to save entity config", e);
         }
     }
 
-    public BetterArrayList getLoadedEntities(){
-        return loadedEntities;
+    public ModSettings getSettings(){
+        return modSettings;
     }
 
-    public BetterArrayList getEnabledEntities(){
-        return enabledEntities;
+    public Map<String, EntitySettings> getEntityConfigs(){
+        return entityConfigs;
     }
 
-    public BetterArrayList getColorOfEnabled(){
-        return colorOfEnabled;
+    public EntitySettings getOrCreateSettings(String entityName) {
+        return entityConfigs.computeIfAbsent(entityName,
+                k -> new EntitySettings(defaultColor, defaultRenderMode, defaultState, defaultState));
     }
 
-    public SettingsList getSettings(){
-        return settings;
+    public void updateEntityColor(String entityName, String newColor){
+        getOrCreateSettings(entityName).color = newColor;
     }
 
-    public BetterArrayList getPlayersList(){
-        return currentlyLoadedPlayers;
+    public void updateEntityRenderMode(String entityName, String newRenderMode){
+        getOrCreateSettings(entityName).renderMode = newRenderMode;
     }
 
-    public Map<String, String> getRenderModes() {
-        return renderModes;
+    public void updateEntityType(String entityName, boolean isPlayer){
+        getOrCreateSettings(entityName).isPlayer = isPlayer;
     }
 
+    public void updateEntityEnabled(String entityName, boolean enabled){
+        getOrCreateSettings(entityName).isEnabled = enabled;
+    }
 
+    public List<String> getAllEntityNames() {
+        return new ArrayList<>(entityConfigs.keySet());
+    }
+
+    public List<String> getEnabledEntityNames() {
+        return entityConfigs.entrySet().stream().filter(entry -> entry.getValue().isEnabled).map(Map.Entry::getKey).toList();
+    }
+
+    public List<String> getPlayerEntityNames() {
+        return entityConfigs.entrySet().stream().filter(entry -> entry.getValue().isPlayer).map(Map.Entry::getKey).toList();
+    }
+
+    public void removeAllPlayers() {
+        entityConfigs.entrySet().removeIf(entry -> entry.getValue().isPlayer);
+    }
+
+    private void initializeDefaultsIfMissing() {
+        try {
+            if (!Files.exists(LOADED_ENTITIES_FILE) || !Files.exists(SETTINGS_FILE)) {
+                this.getOrCreateSettings("Starred Mobs");
+                saveConfig(); // Write empty file if missing
+                Files.writeString(SETTINGS_FILE, "false\n");
+            }
+        } catch (IOException e) {
+            LOGGER.error("Failed to initialize files", e);
+        }
+    }
 }

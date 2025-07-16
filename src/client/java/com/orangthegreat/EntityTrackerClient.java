@@ -3,8 +3,11 @@ package com.orangthegreat;
 import com.orangthegreat.menu.ScreenOpener;
 import com.orangthegreat.menu.ModMenuScreen;
 import com.orangthegreat.utils.Color;
-import com.orangthegreat.utils.ETConfigs;
+
 import static com.orangthegreat.utils.Renderer.*;
+
+import com.orangthegreat.utils.ETConfigs;
+import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.decoration.ArmorStandEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
@@ -31,20 +34,19 @@ public class EntityTrackerClient implements ClientModInitializer {
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 	public static MinecraftClient MC;
 	public static List<Entity> entitiesToRender = new ArrayList<>();
-	private static final ETConfigs configs = ETConfigs.getInstance();
+	private static final ETConfigs modConfigs = ETConfigs.getInstance();
 
 	@Override
 	public void onInitializeClient() {
-		configs.loadConfig();
-		configs.getLoadedEntities().add("Starred Mobs");
+		modConfigs.loadConfig();
 		ScreenOpener.register();
 
 		//checking for the command /etr
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-			dispatcher.register(
-					literal("etr").executes(context -> {
+			dispatcher.register(literal("etr").executes(context -> {
+						if (MC.currentScreen instanceof ChatScreen) MC.setScreen(null);
 						if (FabricLoader.getInstance().isModLoaded("modmenu")) {
-							ScreenOpener.openNextTick(ModMenuScreen.getMainModScreen(MinecraftClient.getInstance().currentScreen));
+							ScreenOpener.openNextTick(ModMenuScreen.getMainModScreen(MC.currentScreen));
 						} else {
 							LOGGER.info("ModMenu not found");
 						}
@@ -57,23 +59,36 @@ public class EntityTrackerClient implements ClientModInitializer {
 		ClientEntityEvents.ENTITY_LOAD.register(new ClientEntityEvents.Load() {
 			@Override
 			public void onLoad(Entity entity, ClientWorld clientWorld) {
-				if (!configs.getSettings().isEnabled()) return;
+				//not performing anything if mod is disabled or the entity is a projectile
+				if (!modConfigs.getSettings().isEnabled()) return;
 				if(entity instanceof ProjectileEntity) return;
 				final String entityName = entity.getName().getString();
 
-				if (configs.getEnabledEntities().contains("Starred Mobs") && (entity instanceof LivingEntity) && (entityName.contains("✯") || entityName.contains("Shadow Assassin") || entityName.contains("King Midas") || entityName.contains("?"))){
+				//for player entities
+                try {
+					var networkHandler = MC.getNetworkHandler();
+					var entry = networkHandler.getPlayerListEntry(entity.getUuid());
+
+					if (entry != null && entry.getLatency() > 0 && !entityName.contains("[") && !entityName.contains("§") && (entity instanceof LivingEntity)) {
+						// Assume it's a real player if it passes latency OR some other prefix logic
+						modConfigs.getOrCreateSettings(entityName);
+						modConfigs.updateEntityType(entityName, true);
+						if(modConfigs.getEnabledEntityNames().contains(entityName)) entitiesToRender.add(entity);
+						return;
+					}
+                } catch (Exception e) {
+                    LOGGER.error("Failed to load player list", e);
+                }
+
+				//for skyblock dungeons
+                if (modConfigs.getEnabledEntityNames().contains("Starred Mobs") && (entity instanceof LivingEntity) && (entityName.contains("✯") || entityName.contains("Shadow Assassin") || entityName.contains("King Midas") || entityName.contains("?"))){
 					entitiesToRender.add(entity);
 					return;
 				}
 
-				if(entity.isControlledByPlayer() && (entity instanceof LivingEntity)){
-					configs.getPlayersList().add(entityName);
-					if(configs.getEnabledEntities().contains(entityName)) entitiesToRender.add(entity);
-					return;
-				}
-
-				configs.getLoadedEntities().add(entityName);
-				if(configs.getEnabledEntities().contains(entityName)) entitiesToRender.add(entity);
+				//regular mobs
+				modConfigs.getOrCreateSettings(entityName);
+				if(modConfigs.getEnabledEntityNames().contains(entityName)) entitiesToRender.add(entity);
 			}
 		});
 
@@ -81,7 +96,13 @@ public class EntityTrackerClient implements ClientModInitializer {
 		ClientEntityEvents.ENTITY_UNLOAD.register(new ClientEntityEvents.Unload() {
 			@Override
 			public void onUnload(Entity entity, ClientWorld clientWorld) {
-				if (!configs.getSettings().isEnabled()) return;
+				if (!modConfigs.getSettings().isEnabled()) return;
+				final String entityName = entity.getName().getString();
+
+				//removing players if not loaded
+				if (modConfigs.getPlayerEntityNames().contains(entityName)){
+					modConfigs.getEntityConfigs().remove(entityName);
+				}
 				entitiesToRender.remove(entity);
 			}
 		});
@@ -96,20 +117,25 @@ public class EntityTrackerClient implements ClientModInitializer {
 			}
 		});
 
-		//rendering command here
+		//rendering the highlighted boxes/entities
 		WorldRenderEvents.AFTER_ENTITIES.register(new WorldRenderEvents.AfterEntities() {
 			@Override
 			public void afterEntities(WorldRenderContext context) {
-				if (!configs.getSettings().isEnabled()) return;
+				if (!modConfigs.getSettings().isEnabled()) return;
 				for (Entity entity : entitiesToRender){
 					if (MC == null) return;
-					entity = (entity instanceof ArmorStandEntity) ? getEntityUnderArmorStand(entity, 1.5) : entity; //useful when servers put nametags on invis armor stands above entities
-					if(!entity.isLiving()) return;
-
 					String entityName = entity.getName().getString();
 
-					Color entityColor = Color.convertHextoRGB(configs.getColorOfEnabled().get(configs.getEnabledEntities().indexOf(entityName)));
-					String renderMode = configs.getRenderModes().getOrDefault(entityName, "Hitbox");
+					//getting actual entity if the server has nametags put on invisible armorstands above entity (used for skyblock dungeons)
+					if (entity instanceof ArmorStandEntity){
+						entity = getEntityUnderArmorStand(entity, 1.5);
+						entityName = "Starred Mobs";
+					}
+
+					if(!(entity instanceof LivingEntity)) return;
+
+					Color entityColor = Color.convertHextoRGB(modConfigs.getOrCreateSettings(entityName).color);
+					String renderMode = modConfigs.getOrCreateSettings(entityName).renderMode;
 
 					switch (renderMode) {
 						case "Fill Hitbox":
@@ -133,7 +159,8 @@ public class EntityTrackerClient implements ClientModInitializer {
 		ClientLifecycleEvents.CLIENT_STOPPING.register(new ClientStopping() {
 		   @Override
 		   public void onClientStopping(MinecraftClient minecraftClient) {
-			   configs.saveConfig();
+			   modConfigs.removeAllPlayers();
+			   modConfigs.saveConfig();
 		   }
 		});
 
