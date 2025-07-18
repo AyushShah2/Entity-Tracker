@@ -32,9 +32,9 @@ public class ModMenuScreen {
             createModSettingsScreen(modSettingsCategory, entryBuilder);
 
             ConfigCategory entityListCategory = configBuilder.getOrCreateCategory(Text.literal("Entities"));
-            createEntitySelectionScreen(entityListCategory, entryBuilder, modConfigs.getAllEntityNames());
+            createEntitySelectionScreen(entityListCategory, entryBuilder, modConfigs.getNonPlayerEntityNames());
 
-            ConfigCategory playerListCategory = configBuilder.getOrCreateCategory(Text.literal("Players"));
+            ConfigCategory playerListCategory = configBuilder.getOrCreateCategory(Text.literal("Player Entities"));
             createEntitySelectionScreen(playerListCategory, entryBuilder, modConfigs.getPlayerEntityNames());
 
             configBuilder.setSavingRunnable(() -> {
@@ -64,17 +64,6 @@ public class ModMenuScreen {
     public static void createEntitySelectionScreen(ConfigCategory category, ConfigEntryBuilder entryBuilder, List<String> list){
         for (int i = 0; i < list.size(); i++) {
             final String entityName = list.get(i);
-//            final int indexOfEnabled = configs.getEnabledEntities().indexOf(entityName);
-//
-//            int defaultIntColor = 0xFFFFFF; // Default white
-//            String defaultHexColor = String.format("#%06X", defaultIntColor);
-//
-//            if (indexOfEnabled != -1 && indexOfEnabled < configs.getColorOfEnabled().size()) {
-//                defaultHexColor = configs.getColorOfEnabled().get(indexOfEnabled);
-//                try {
-//                    defaultIntColor = (int) Long.parseLong(defaultHexColor.replace("#", ""), 16); // use Long to avoid overflow
-//                } catch (NumberFormatException ignored) {}
-//            }
 
             final String hexColor = modConfigs.getOrCreateSettings(entityName).color;
             final int intColor = (int) Long.parseLong((hexColor).replace("#", ""), 16);
@@ -87,15 +76,13 @@ public class ModMenuScreen {
 
             category.addEntry(toggleEntry);
 
-//            final int currentIndex = configs.getEnabledEntities().indexOf(entityName);
-
             var colorEntry = entryBuilder.startColorField(Text.literal(entityName + " Color"), intColor)
                     .setSaveConsumer(color -> modConfigs.updateEntityColor(entityName, String.format("#%06X", color)))
                     .setTooltip(Text.literal("Current Color: " + hexColor))
                     .build();
 
             var renderModeEntry = entryBuilder.startDropdownMenu(
-                            Text.literal(entityName + "Render Mode"),
+                            Text.literal(entityName + " Render Mode"),
                             DropdownMenuBuilder.TopCellElementBuilder.of(modConfigs.getOrCreateSettings(entityName).renderMode, s -> {
                                 if (s.equalsIgnoreCase("Hitbox") || s.equalsIgnoreCase("Fill Hitbox") || s.equalsIgnoreCase("Fill Entity")) {
                                     return s;
@@ -118,84 +105,4 @@ public class ModMenuScreen {
 
         }
     }
-
-//    public static void createPlayerSelectionScreen(ConfigCategory category, ConfigEntryBuilder entryBuilder){
-//        for (int i = 0; i < configs.getPlayersList().size(); i++) {
-//            final String playerName = configs.getPlayersList().get(i);
-//            final int indexOfEnabled = configs.getEnabledEntities().indexOf(playerName);
-//
-//            int defaultIntColor = 0xFFFFFF; // Default white
-//            String defaultHexColor = String.format("#%06X", defaultIntColor);
-//
-//            if (indexOfEnabled != -1 && indexOfEnabled < configs.getColorOfEnabled().size()) {
-//                defaultHexColor = configs.getColorOfEnabled().get(indexOfEnabled);
-//                try {
-//                    defaultIntColor = (int) Long.parseLong(defaultHexColor.replace("#", ""), 16); // use Long to avoid overflow
-//                } catch (NumberFormatException ignored) {}
-//            }
-//
-//            final int intColor = defaultIntColor;
-//            final String hexColor = defaultHexColor;
-//
-//            var toggleEntry = entryBuilder.startBooleanToggle(Text.literal(playerName), indexOfEnabled != -1)
-//                    .setDefaultValue(indexOfEnabled != -1)
-//                    .setSaveConsumer(toggled -> {
-//                        if (toggled) {
-//                            if (configs.getEnabledEntities().add(playerName)){
-//                                final int newIndex = configs.getEnabledEntities().indexOf(playerName);
-//                                LOGGER.info(newIndex + " " + configs.getColorOfEnabled().size());
-//                                if (configs.getColorOfEnabled().size() <= newIndex){
-//                                    configs.getColorOfEnabled().forceAdd(hexColor);
-//                                }
-//                                else {
-//                                    configs.getColorOfEnabled().set(newIndex, hexColor);
-//                                }
-//                            }
-//                        } else if (!toggled && indexOfEnabled != -1) {
-//                            if (indexOfEnabled >= 0 && indexOfEnabled < configs.getColorOfEnabled().size()) {
-//                                configs.getColorOfEnabled().remove(indexOfEnabled);
-//                                configs.getEnabledEntities().remove(indexOfEnabled);
-//                            }
-//                        }
-//                    })
-//                    .setTooltip(Text.literal("Toggle tracking for this player"))
-//                    .build();
-//
-//            category.addEntry(toggleEntry);
-//
-//            final int currentIndex = configs.getEnabledEntities().indexOf(playerName);
-//
-//            var colorEntry = entryBuilder.startColorField(Text.literal(playerName + " Color"), intColor)
-//                    .setSaveConsumer(color -> {
-//                        if (currentIndex >= 0 && currentIndex < configs.getColorOfEnabled().size()) configs.getColorOfEnabled().set(currentIndex, String.format("#%06X", color));
-//                    })
-//                    .setTooltip(Text.literal("Current Color: " + hexColor))
-//                    .build();
-//
-//            var renderModeEntry = entryBuilder.startDropdownMenu(
-//                            Text.literal(playerName + "Render Mode"),
-//                            DropdownMenuBuilder.TopCellElementBuilder.of("Hitbox", s -> {
-//                                if (s.equalsIgnoreCase("Hitbox") || s.equalsIgnoreCase("Fill Hitbox") || s.equalsIgnoreCase("Fill Entity")) {
-//                                    return s;
-//                                }
-//                                return null;
-//                            }))
-//                    .setDefaultValue(configs.getRenderModes().getOrDefault(playerName, "Hitbox"))
-//                    .setSelections(Lists.newArrayList("Hitbox", "Fill Hitbox", "Fill Entity"))
-//                    .setTooltip(Text.literal("Render with: 'Hitbox', 'Fill Hitbox', or 'Fill Entity'"))
-//                    .setSaveConsumer(selected -> {
-//                        configs.getRenderModes().put(playerName, selected);
-//                    })
-//                    .build();
-//
-//            //wrapping into subCategory
-//            var subCategoryBuilder = entryBuilder.startSubCategory(Text.literal(playerName + " Settings"))
-//                    .setExpanded(false);
-//
-//            subCategoryBuilder.add(colorEntry);
-//            subCategoryBuilder.add(renderModeEntry);
-//            category.addEntry(subCategoryBuilder.build());
-//
-//        }
-//    }
 }

@@ -116,6 +116,10 @@ public class ETConfigs {
         return entityConfigs.entrySet().stream().filter(entry -> entry.getValue().isEnabled).map(Map.Entry::getKey).toList();
     }
 
+    public List<String> getNonPlayerEntityNames() {
+        return entityConfigs.entrySet().stream().filter(entry -> !(entry.getValue().isPlayer)).map(Map.Entry::getKey).toList();
+    }
+
     public List<String> getPlayerEntityNames() {
         return entityConfigs.entrySet().stream().filter(entry -> entry.getValue().isPlayer).map(Map.Entry::getKey).toList();
     }
