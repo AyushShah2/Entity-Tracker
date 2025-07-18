@@ -21,11 +21,16 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallba
 import net.fabricmc.loader.api.FabricLoader;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
 
+import net.minecraft.text.ClickEvent;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 
+import net.minecraft.util.Formatting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 
 public class EntityTrackerClient implements ClientModInitializer {
@@ -43,7 +48,16 @@ public class EntityTrackerClient implements ClientModInitializer {
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(literal("etr").executes(context -> {
 			if (MC.currentScreen instanceof ChatScreen) MC.setScreen(null);
 			if (FabricLoader.getInstance().isModLoaded("modmenu")) ScreenOpener.openNextTick(ModMenuScreen.getMainModScreen(MC.currentScreen));
-			else LOGGER.info("ModMenu not found");
+			else {
+				MC.player.sendMessage(Text.literal("ModMenu and Cloth Config are required!").formatted(Formatting.RED, Formatting.BOLD), false);
+                try {
+					MC.player.sendMessage(Text.literal("➤ ").append(Text.literal("Click here to download ModMenu").setStyle(Style.EMPTY.withColor(Formatting.AQUA).withUnderline(true).withClickEvent(new ClickEvent.OpenUrl(new URI("https://modrinth.com/mod/modmenu/version/14.0.0-rc.2"))))), false);
+                    MC.player.sendMessage(Text.literal("➤ ").append(Text.literal("Click here to download Cloth Config").setStyle(Style.EMPTY.withColor(Formatting.AQUA).withUnderline(true).withClickEvent(new ClickEvent.OpenUrl(new URI("https://modrinth.com/mod/cloth-config/version/18.0.145+fabric"))))), false);
+                } catch (URISyntaxException e) {
+                    LOGGER.error("Error sending message with click event");
+                }
+				LOGGER.warn("ModMenu Not installed.");
+            }
 			return 1;
 		})));
 
