@@ -49,7 +49,7 @@ public class EntityTrackerClient implements ClientModInitializer {
 			if (MC.currentScreen instanceof ChatScreen) MC.setScreen(null);
 			if (FabricLoader.getInstance().isModLoaded("modmenu")) ScreenOpener.openNextTick(ModMenuScreen.getMainModScreen(MC.currentScreen));
 			else {
-				MC.player.sendMessage(Text.literal("ModMenu and Cloth Config are required!").formatted(Formatting.RED, Formatting.BOLD), false);
+				MC.player.sendMessage(Text.literal("ModMenu and Cloth Config are required!").formatted(Formatting.DARK_RED, Formatting.BOLD), false);
                 try {
 					MC.player.sendMessage(Text.literal("➤ ").append(Text.literal("Click here to download ModMenu").setStyle(Style.EMPTY.withColor(Formatting.AQUA).withUnderline(true).withClickEvent(new ClickEvent.OpenUrl(new URI("https://modrinth.com/mod/modmenu/version/14.0.0-rc.2"))))), false);
                     MC.player.sendMessage(Text.literal("➤ ").append(Text.literal("Click here to download Cloth Config").setStyle(Style.EMPTY.withColor(Formatting.AQUA).withUnderline(true).withClickEvent(new ClickEvent.OpenUrl(new URI("https://modrinth.com/mod/cloth-config/version/18.0.145+fabric"))))), false);
@@ -76,7 +76,7 @@ public class EntityTrackerClient implements ClientModInitializer {
 
 		ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register((client, world) -> {
 			modConfigs.removeAllPlayers();
-			modConfigs.saveConfig();
+			modConfigs.refresh();
 		});
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -86,7 +86,7 @@ public class EntityTrackerClient implements ClientModInitializer {
 			entitiesToRender.removeIf(e -> !e.isAlive());
 			for (Entity entity : client.world.getEntities()) {
 				String name = entity.getName().getString();
-				if (name.contains("✯") || name.contains("Shadow Assassin") || name.contains("King Midas") || name.contains("?")) {
+				if (name.contains("✯") || name.contains("Shadow Assassin") || name.contains("King Midas")) {
 					if (entity instanceof ArmorStandEntity) {
 						entity = getEntityUnderArmorStand(entity, 1.5);
 						entity.setCustomName(Text.of("Starred Mobs"));
@@ -117,7 +117,7 @@ public class EntityTrackerClient implements ClientModInitializer {
 
 		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
 			modConfigs.removeAllPlayers();
-			modConfigs.saveConfig();
+			modConfigs.refresh();
 		});
 	}
 }

@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.entity.Entity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +18,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static com.orangthegreat.EntityTrackerClient.MC;
+import static com.orangthegreat.EntityTrackerClient.entitiesToRender;
 
 public class ETConfigs {
     private static ETConfigs instance;
@@ -76,6 +80,18 @@ public class ETConfigs {
             writer.close();
         } catch (Exception e){
             LOGGER.error("Failed to save entity config", e);
+        }
+    }
+
+    public void refresh(){
+        entitiesToRender.clear();
+        this.saveConfig();
+        this.loadConfig();
+        if(MC != null && MC.world != null) {
+            for (Entity entity : MC.world.getEntities()) {
+                if (this.getEnabledEntityNames().contains(entity.getName().getString()))
+                    entitiesToRender.add(entity);
+            }
         }
     }
 

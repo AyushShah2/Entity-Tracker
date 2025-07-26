@@ -38,15 +38,7 @@ public class ModMenuScreen {
             createEntitySelectionScreen(playerListCategory, entryBuilder, modConfigs.getPlayerEntityNames());
 
             configBuilder.setSavingRunnable(() -> {
-                entitiesToRender.clear();
-                modConfigs.saveConfig();
-                modConfigs.loadConfig();
-                if(MC != null && MC.world != null) {
-                    for (Entity entity : MC.world.getEntities()) {
-                        if (modConfigs.getEnabledEntityNames().contains(entity.getName().getString()))
-                            entitiesToRender.add(entity);
-                    }
-                }
+                modConfigs.refresh();
             });
             return configBuilder.setParentScreen(parent).build();
         };
